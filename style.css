@@ -1,0 +1,13 @@
+#main {
+    width: 60%;
+}
+
+#image {
+    background-position: 50%;
+    background-repeat: no-repeat;
+    background-size: cover;
+    border-radius: 4px;
+    display: inline-block;
+    height: 230px;
+    width: 170px;
+}
