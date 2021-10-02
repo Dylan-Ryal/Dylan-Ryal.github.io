@@ -390,6 +390,8 @@ class MachineModel {
 }
 
 const run = async () => {
+    const season = document.getElementById("season").value;
+    const year = document.getElementById("year").value;
     if (!document.getElementById("username").value) {
         return;
     }
@@ -426,15 +428,18 @@ const run = async () => {
 
     await model.trainModel(inputs, labels);
 
-    const [watchingList] = lists.filter(list => list.name === "Watching");
-    const [customList] = lists.filter(list => list.name === "AWC Gambler");
-    const [pausedList] = lists.filter(list => list.name === "Paused");
-    const [planningList] = lists.filter(list => list.name === "Planning");
+    let testData = [];
 
-    //const selectedSeason = await dataHandler.fetchSeason("FALL", 2013);
-
-    const testData = dataHandler.createDataArray(planningList.entries, false);
-    //const testData = dataHandler.createDataArray(selectedSeason.media, true);
+    if (season !== "NONE" && year) {
+        const selectedSeason = await dataHandler.fetchSeason(season, year);
+        const completedShows = completedList.entries.map(entry => entry.media.title.romaji);
+        const newShows = selectedSeason.media.filter(entry => !completedShows.includes(entry.title.romaji));
+        testData = dataHandler.createDataArray(newShows, true);
+    } else {
+        const [planningList] = lists.filter(list => list.name === "Planning");
+        testData = dataHandler.createDataArray(planningList.entries, false);
+    }
+    
     tf.util.shuffle(testData);
     const normalTestData = dataHandler.normaliseData(testData.map(d => d.inputData), maxValue, minValue);
 
