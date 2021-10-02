@@ -6,7 +6,7 @@ class DataHandler {
         this.allStaff = {};
         this.defaultValues = {};
         
-        this.name = "NeoXypher";
+        this.name = document.getElementById("username").value;
     }
 
     async fetchLists() {
@@ -80,7 +80,7 @@ class DataHandler {
         }
 
         function handleError(error) {
-            alert('Error, check console');
+            //alert('Error');
             console.error(error);
         }
 
@@ -158,7 +158,7 @@ class DataHandler {
         }
     
         function handleError(error) {
-            alert('Error, check console');
+            //alert('Error, check console');
             console.error(error);
         }
     
@@ -390,8 +390,23 @@ class MachineModel {
 }
 
 const run = async () => {
+    if (!document.getElementById("username").value) {
+        return;
+    }
+    document.getElementById("submit").disabled = true;
+    const images = document.getElementsByClassName("image");
+    while(images.length > 0) {
+        images[0].remove();
+    }
+    document.getElementById("message").innerHTML = "Please wait...";
+
     const dataHandler = new DataHandler();
     const lists = await dataHandler.fetchLists();
+    if(!lists) {
+        document.getElementById("submit").disabled = false;
+        document.getElementById("message").innerHTML = "Error";
+        return;
+    }
     const [completedList] = lists.filter(list => list.name === 'Completed');
 
     const trainingList = completedList.entries.slice(0, Math.floor(completedList.entries.length / 10) * 7);
@@ -416,10 +431,10 @@ const run = async () => {
     const [pausedList] = lists.filter(list => list.name === "Paused");
     const [planningList] = lists.filter(list => list.name === "Planning");
 
-    const selectedSeason = await dataHandler.fetchSeason("FALL", 2013);
+    //const selectedSeason = await dataHandler.fetchSeason("FALL", 2013);
 
-    //const testData = dataHandler.createDataArray(pausedList.entries, false);
-    const testData = dataHandler.createDataArray(selectedSeason.media, true);
+    const testData = dataHandler.createDataArray(planningList.entries, false);
+    //const testData = dataHandler.createDataArray(selectedSeason.media, true);
     tf.util.shuffle(testData);
     const normalTestData = dataHandler.normaliseData(testData.map(d => d.inputData), maxValue, minValue);
 
@@ -444,19 +459,26 @@ const run = async () => {
     const sorted = output.sort((a, b) => b.normPrediction - a.normPrediction);
     sorted.forEach(entry => console.log(`${entry.title} : ${entry.normPrediction} | ${entry.normActual}`));
 
+    const { defaultGenreValue } = dataHandler.defaultValues;
+    const recommended = sorted.filter(entry => entry.normPrediction > defaultGenreValue);
+
     const total = mse.reduce(dataHandler.reducer);
     console.log(total / mse.length);
     console.log(correct / mse.length);
 
-    const e = document.getElementById("main");
+    document.getElementById("message").innerHTML = "Recommended shows for you:";
 
-    for (let entry = 0; entry < 8; entry++) {
+    for (let entry = 0; entry < recommended.length; entry++) {
         const img = document.createElement("a");
-        img.id = "image";
-        img.href = sorted[entry].url;
-        img.style.backgroundImage = `url(${sorted[entry].image})`;
-        e.appendChild(img);
+        img.classList.add('image');
+        img.href = recommended[entry].url;
+        img.style.backgroundImage = `url(${recommended[entry].image})`;
+        main.appendChild(img);
     }
+
+    document.getElementById("submit").disabled = false;
 }
 
-document.addEventListener('DOMContentLoaded', run);
+const saveBtn = document.getElementById("submit");
+saveBtn.addEventListener('click', run);
+
